@@ -1,0 +1,37 @@
+version: '3' 
+services: 
+ gitlab: 
+   container_name: gitlab 
+   image: gitlab/gitlab-ce:latest 
+   hostname: ${HOST}
+   restart: always 
+   environment: 
+     GITLAB_OMNIBUS_CONFIG: | 
+       external_url 'https://${HOST}'
+       nginx['listen_port'] = 80
+       nginx['listen_https'] = false
+       gitlab_rails['gitlab_shell_ssh_port'] = 2224 
+   labels: 
+     - "traefik.docker.network=proxy"
+     - "traefik.enable=true" 
+     - "traefik.http.routers.gitlab.rule=Host(`${HOST}`)"
+     - "traefik.http.routers.gitlab.entrypoints=websecure"
+     - "traefik.http.routers.gitlab.tls=true"
+     - "traefik.http.routers.gitlab.tls.certresolver=letsencrypt"
+     - "traefik.http.routers.gitlab.service=gitlab"
+     - "traefik.http.services.gitlab.loadbalancer.server.port=80"
+   healthcheck:
+     disable: false 
+   ports: 
+     - '2224:22' 
+   volumes: 
+     - '/srv/gitlab/config:/etc/gitlab' 
+     - '/srv/gitlab/logs:/var/log/gitlab' 
+     - '/srv/gitlab/data:/var/opt/gitlab' 
+   networks: 
+     - proxy 
+     - gitlab 
+networks: 
+ gitlab: {} 
+ proxy: 
+   external: true
